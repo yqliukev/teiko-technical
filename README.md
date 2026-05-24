@@ -2,6 +2,32 @@
 
 This repository contains a small data-loading and analysis pipeline for cell-count data stored in CSV format and loaded into SQLite. The workflow is intentionally simple: ingest the raw file, query it with pandas, generate summaries, and produce a few downstream statistical outputs and plots.
 
+## Running and Reproducing Results
+
+Use the Makefile at the repository root to install dependencies, run the backend pipeline, and start the dashboard.
+
+1. Install the Python and frontend dependencies:
+
+```bash
+make setup
+```
+
+2. Run the backend pipeline to regenerate the database, summary files, statistical results, and plot:
+
+```bash
+make pipeline
+```
+
+3. Start the dashboard locally:
+
+```bash
+make dashboard
+```
+
+The website will be hosted on `http://localhost:5173/` locally.
+
+If you prefer to run the Python scripts manually, execute `python3 load_data.py` to rebuild `teiko.db`, then `python3 steps.py` to regenerate the analysis outputs.
+
 ## Database Schema
 
 `load_data.py` creates two tables: `samples` and `subjects`.
@@ -41,4 +67,4 @@ The code is organized around a simple pipeline:
 3. `steps.py` drives the workflow and produces outputs.
 4. dashboard in `frontend` with all the needed data.
 
-It's practical for the small and set tasks, while keeping the reusable analysis logic separate from the top-level execution script. Some of the statistical processes would be added into new functinos as common tasks emerged for a proper analytical pipeline. For similar reasons, as the task does not specify the type functionality for the dashboard, i only added some basic overview for the frontend, and it can be customized fully for common workflows and updated periodically with any job framework. Produced data is duplicated in `frontend` as it's been requested to have it in the root repository.
+It's practical for the small and set tasks, while keeping the reusable analysis logic separate from the top-level execution script. Some of the statistical processes would be added into new functinos as common tasks emerged for a proper analytical pipeline. For similar reasons, as the task does not specify the type functionality for the dashboard, i only added some basic overview for the frontend, and it can be customized fully for common workflows and updated periodically with any job framework.

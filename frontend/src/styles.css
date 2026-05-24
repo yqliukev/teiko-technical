@@ -492,10 +492,16 @@ select {
   font-size: 0.68rem;
 }
 
-.celltype-tab__flag {
+.celltype-tab__significant {
   color: #dcfce7 !important;
   background: rgba(34, 197, 94, 0.18) !important;
   border-color: rgba(34, 197, 94, 0.45) !important;
+}
+
+.celltype-tab__maybe {
+  color: #fef3c7 !important;
+  background: rgba(245, 158, 11, 0.18) !important;
+  border-color: rgba(245, 158, 11, 0.45) !important;
 }
 
 .step3-layout {

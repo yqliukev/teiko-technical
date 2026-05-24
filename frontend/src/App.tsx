@@ -454,6 +454,7 @@ function App() {
                 const statResult = dashboardData.step3Stats[cellType];
                 const isSelected = cellType === selectedCellType;
                 const isSignificant = Math.min(statResult.ttest_p, statResult.mw_p) < 0.05;
+                const possiblySignificant = Math.min(statResult.ttest_p, statResult.mw_p) < 0.15;
 
                 return (
                   <button
@@ -465,8 +466,8 @@ function App() {
                     onClick={() => setSelectedCellType(cellType)}
                   >
                     <span>{formatCellType(cellType)}</span>
-                    <small className={isSignificant ? 'celltype-tab__flag' : ''}>
-                      {isSignificant ? 'significant' : 'ns'}
+                    <small className={isSignificant ? 'celltype-tab__significant' : possiblySignificant ? 'celltype-tab__maybe' :''}>
+                      {isSignificant ? 'significant' : possiblySignificant ? 'maybe' : 'ns'}
                     </small>
                   </button>
                 );
@@ -480,9 +481,15 @@ function App() {
                 <div>
                   <h3>Generated boxplot</h3>
                 </div>
-                <div className="stat-pill">
-                  <span>t-test p</span>
-                  <strong>{formatPValue(dashboardData.step3Stats[selectedCellType].ttest_p)}</strong>
+                <div className="celltype-tabs">
+                  <div className="stat-pill">
+                    <span>t-test p</span>
+                    <strong>{formatPValue(dashboardData.step3Stats[selectedCellType].ttest_p)}</strong>
+                  </div>
+                  <div className="stat-pill stat-pill--accent">
+                    <span>Mann-Whitney p</span>
+                    <strong>{formatPValue(dashboardData.step3Stats[selectedCellType].mw_p)}</strong>
+                  </div>
                 </div>
               </div>
 
@@ -492,21 +499,6 @@ function App() {
                 alt="Generated step 3 boxplot"
               />
 
-              <div className="chart-summary-grid">
-                {RESPONSE_GROUPS.map((response) => {
-                  const stats = step3Series.stats[response];
-                  return (
-                    <article className="mini-stat panel" key={response}>
-                      <p>{response === 'no' ? 'Non-responders' : 'Responders'}</p>
-                      <strong>{numberFormatter.format(stats.count)}</strong>
-                      <span>
-                        Median {percentFormatter.format(stats.median)}% | IQR{' '}
-                        {percentFormatter.format(stats.q3 - stats.q1)}%
-                      </span>
-                    </article>
-                  );
-                })}
-              </div>
             </article>
 
             <aside className="sidebar-stack">
@@ -515,10 +507,6 @@ function App() {
                   <div>
                     <p className="eyebrow">Statistical results</p>
                     <h3>STEP 3 significance table</h3>
-                  </div>
-                  <div className="stat-pill stat-pill--accent">
-                    <span>Mann-Whitney p</span>
-                    <strong>{formatPValue(dashboardData.step3Stats[selectedCellType].mw_p)}</strong>
                   </div>
                 </div>
                 <div className="stat-table-shell">
