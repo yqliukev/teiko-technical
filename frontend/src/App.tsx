@@ -3,6 +3,7 @@ import {
   CELL_TYPES,
   type CellType,
   type DashboardData,
+  type Step4Row,
   type SummaryRow,
   loadDashboardData,
 } from './data';
@@ -13,6 +14,7 @@ const percentFormatter = new Intl.NumberFormat('en-US', {
   maximumFractionDigits: 2,
 });
 const STEP_2_PAGE_SIZE = 20;
+const STEP_4_PAGE_SIZE = 20;
 
 function formatPValue(value: number): string {
   if (value < 0.001) {
@@ -107,6 +109,8 @@ function App() {
   const [summaryQuery, setSummaryQuery] = useState('');
   const [selectedSummaryCellType, setSelectedSummaryCellType] = useState<'all' | CellType>('all');
   const [step2Page, setStep2Page] = useState(1);
+  const [step4Query, setStep4Query] = useState('');
+  const [step4Page, setStep4Page] = useState(1);
 
   useEffect(() => {
     let active = true;
@@ -129,10 +133,15 @@ function App() {
   }, []);
 
   const deferredSummaryQuery = useDeferredValue(normalizeSearchValue(summaryQuery));
+  const deferredStep4Query = useDeferredValue(normalizeSearchValue(step4Query));
 
   useEffect(() => {
     setStep2Page(1);
   }, [deferredSummaryQuery, selectedSummaryCellType]);
+
+  useEffect(() => {
+    setStep4Page(1);
+  }, [deferredStep4Query]);
 
   const step3Series = useMemo(() => {
     if (!dashboardData) {
@@ -178,6 +187,51 @@ function App() {
     const startIndex = (step2Page - 1) * STEP_2_PAGE_SIZE;
     return filteredStep2Rows.slice(startIndex, startIndex + STEP_2_PAGE_SIZE);
   }, [filteredStep2Rows, step2Page]);
+
+  const filteredStep4Rows = useMemo(() => {
+    if (!dashboardData) {
+      return [] as Step4Row[];
+    }
+
+    const normalizedQuery = deferredStep4Query;
+
+    return dashboardData.step4Rows
+      .filter((row) => {
+        if (normalizedQuery.length === 0) {
+          return true;
+        }
+
+        const searchableFields = [
+          String(row.subject),
+          String(row.project),
+          row.response,
+          row.sex,
+          String(row.sample),
+          row.sample_type,
+          String(row.time_from_treatment_start),
+        ].map(normalizeSearchValue);
+
+        return searchableFields.some((field) => field.includes(normalizedQuery));
+      })
+      .sort((left, right) => {
+        if (left.project !== right.project) {
+          return left.project - right.project;
+        }
+
+        return left.sample - right.sample;
+      });
+  }, [dashboardData, deferredStep4Query]);
+
+  const step4PageCount = Math.max(1, Math.ceil(filteredStep4Rows.length / STEP_4_PAGE_SIZE));
+
+  useEffect(() => {
+    setStep4Page((currentPage) => Math.min(currentPage, step4PageCount));
+  }, [step4PageCount]);
+
+  const step4RowsOnPage = useMemo(() => {
+    const startIndex = (step4Page - 1) * STEP_4_PAGE_SIZE;
+    return filteredStep4Rows.slice(startIndex, startIndex + STEP_4_PAGE_SIZE);
+  }, [filteredStep4Rows, step4Page]);
 
   const step3StatRows = useMemo(() => {
     if (!dashboardData) {
@@ -507,52 +561,132 @@ function App() {
           <div className="section-card__header">
             <div>
               <p className="eyebrow">STEP 4</p>
-              <h2>General subgroup summaries</h2>
+              <h2>Baseline subset table</h2>
               <p>
-                The counts below summarize projects, response status, and sex for the melanoma PBMC
-                baseline subset.
+                The table below shows the Step 4 data.
               </p>
+            </div>
+            <div className="filters">
+              <label className="field">
+                <span>Search</span>
+                <input
+                  type="search"
+                  value={step4Query}
+                  onChange={(event) => setStep4Query(event.target.value)}
+                  placeholder="Subject, project, response, sex"
+                />
+              </label>
             </div>
           </div>
 
-          <div className="summary-groups">
-            {[
-              ['project_counts', 'Projects'],
-              ['response_counts', 'Response'],
-              ['sex_counts', 'Sex'],
-            ].map(([key, title]) => {
-              const entries = Object.entries(dashboardData.step4Summary[key as keyof typeof dashboardData.step4Summary]).sort(
-                (left, right) => right[1] - left[1],
-              );
-              const total = entries.reduce((sum, [, count]) => sum + count, 0);
-              const maxCount = Math.max(...entries.map(([, count]) => count), 1);
+          <div className="table-shell">
+            <table className="summary-table">
+              <thead>
+                <tr>
+                  <th>Subject</th>
+                  <th>Project</th>
+                  <th>Response</th>
+                  <th>Sex</th>
+                  <th>Sample</th>
+                  <th>Sample type</th>
+                  <th>Time from treatment start</th>
+                </tr>
+              </thead>
+              <tbody>
+                {step4RowsOnPage.map((row) => (
+                  <tr key={`${row.subject}-${row.sample}`}>
+                    <td>{row.subject}</td>
+                    <td>{row.project}</td>
+                    <td>{row.response}</td>
+                    <td>{row.sex}</td>
+                    <td>{row.sample}</td>
+                    <td>{row.sample_type}</td>
+                    <td>{row.time_from_treatment_start}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
 
-              return (
-                <article className="panel summary-group" key={key}>
-                  <div className="summary-group__heading">
-                    <div>
-                      <h3>{title} counts</h3>
-                    </div>
-                  </div>
-                  <div className="bar-list">
-                    {entries.map(([label, count]) => (
-                      <div className="bar-row" key={label}>
-                        <div className="bar-row__labels">
-                          <span>{formatLabel(label)}</span>
-                          <strong>{numberFormatter.format(count)}</strong>
-                        </div>
-                        <div className="bar-track">
-                          <div
-                            className="bar-fill"
-                            style={{ width: `${(count / maxCount) * 100}%` }}
-                          />
-                        </div>
+          <div className="table-pagination">
+            <p>
+              Showing {filteredStep4Rows.length === 0 ? 0 : (step4Page - 1) * STEP_4_PAGE_SIZE + 1}
+              {' '}
+              to {Math.min(step4Page * STEP_4_PAGE_SIZE, filteredStep4Rows.length)} of{' '}
+              {numberFormatter.format(filteredStep4Rows.length)} rows
+            </p>
+            <div className="table-pagination__controls">
+              <button
+                type="button"
+                className="pagination-button"
+                onClick={() => setStep4Page((currentPage) => Math.max(1, currentPage - 1))}
+                disabled={step4Page === 1}
+              >
+                Previous
+              </button>
+              <span className="table-pagination__status">
+                Page {step4Page} of {step4PageCount}
+              </span>
+              <button
+                type="button"
+                className="pagination-button"
+                onClick={() => setStep4Page((currentPage) => Math.min(step4PageCount, currentPage + 1))}
+                disabled={step4Page === step4PageCount}
+              >
+                Next
+              </button>
+            </div>
+          </div>
+
+          <div className="step4-summary-stack">
+            <div className="section-card__header section-card__header--stacked">
+              <div>
+                <h3>General subgroup summaries</h3>
+                <p>
+                  The counts below summarize projects, response status, and sex.
+                </p>
+              </div>
+            </div>
+
+            <div className="summary-groups">
+              {[
+                ['project_counts', 'Projects'],
+                ['response_counts', 'Response'],
+                ['sex_counts', 'Sex'],
+              ].map(([key, title]) => {
+                const entries = Object.entries(dashboardData.step4Summary[key as keyof typeof dashboardData.step4Summary]).sort(
+                  (left, right) => right[1] - left[1],
+                );
+                const total = entries.reduce((sum, [, count]) => sum + count, 0);
+                const maxCount = Math.max(...entries.map(([, count]) => count), 1);
+
+                return (
+                  <article className="panel summary-group" key={key}>
+                    <div className="summary-group__heading">
+                      <div>
+                        <h3>{title} counts</h3>
                       </div>
-                    ))}
-                  </div>
-                </article>
-              );
-            })}
+                    </div>
+                    <div className="bar-list">
+                      {entries.map(([label, count]) => (
+                        <div className="bar-row" key={label}>
+                          <div className="bar-row__labels">
+                            <span>{formatLabel(label)}</span>
+                            <strong>{numberFormatter.format(count)}</strong>
+                          </div>
+                          <div className="bar-track">
+                            <div
+                              className="bar-fill"
+                              style={{ width: `${(count / maxCount) * 100}%` }}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
           </div>
         </section>
       ) : null}

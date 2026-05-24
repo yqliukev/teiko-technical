@@ -5,11 +5,10 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 DB_PATH = "teiko.db"
-TABLE_NAME = "cell_count"
 
 def fetch_columns(
+	table_name: str,
 	db_path: str = DB_PATH,
-	table_name: str = TABLE_NAME,
     columns: Iterable[str] = (),
     options: str = ""
 ) -> pd.DataFrame:

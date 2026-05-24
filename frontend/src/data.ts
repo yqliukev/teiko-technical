@@ -1,5 +1,6 @@
 import step2SummaryCsvUrl from '../cell_count_summary.csv?url';
 import rawCellCountCsvUrl from '../cell-count.csv?url';
+import step4DataCsvUrl from '../step_4_data.csv?url';
 import statTestResultsUrl from '../stat_test_results.json?url';
 import step4SummaryUrl from '../step_4_summary.json?url';
 import boxplotImageUrl from '../treatment_response_boxplot.png?url';
@@ -47,9 +48,20 @@ export interface Step4Summary {
   sex_counts: Record<string, number>;
 }
 
+export interface Step4Row {
+  subject: number;
+  project: number;
+  response: 'yes' | 'no';
+  sex: 'M' | 'F';
+  sample: number;
+  sample_type: string;
+  time_from_treatment_start: number;
+}
+
 export interface DashboardData {
   step2Rows: SummaryRow[];
   rawRecords: RawRecord[];
+  step4Rows: Step4Row[];
   step3Stats: Step3StatResults;
   step4Summary: Step4Summary;
   boxplotImageUrl: string;
@@ -160,6 +172,18 @@ function parseRawRecords(text: string): RawRecord[] {
   }));
 }
 
+function parseStep4Rows(text: string): Step4Row[] {
+  return parseCsvRows(text).map((record) => ({
+    subject: coerceNumber(record.subject),
+    project: coerceNumber(record.project),
+    response: record.response as 'yes' | 'no',
+    sex: record.sex as 'M' | 'F',
+    sample: coerceNumber(record.sample),
+    sample_type: record.sample_type,
+    time_from_treatment_start: coerceNumber(record.time_from_treatment_start),
+  }));
+}
+
 async function loadTextAsset(assetUrl: string): Promise<string> {
   const response = await fetch(assetUrl);
 
@@ -181,9 +205,10 @@ async function loadJsonAsset<T>(assetUrl: string): Promise<T> {
 }
 
 export async function loadDashboardData(): Promise<DashboardData> {
-  const [step2Csv, rawCsv, step3Stats, step4Summary] = await Promise.all([
+  const [step2Csv, rawCsv, step4Csv, step3Stats, step4Summary] = await Promise.all([
     loadTextAsset(step2SummaryCsvUrl),
     loadTextAsset(rawCellCountCsvUrl),
+    loadTextAsset(step4DataCsvUrl),
     loadJsonAsset<Step3StatResults>(statTestResultsUrl),
     loadJsonAsset<Step4Summary>(step4SummaryUrl),
   ]);
@@ -191,6 +216,7 @@ export async function loadDashboardData(): Promise<DashboardData> {
   return {
     step2Rows: parseSummaryRows(step2Csv),
     rawRecords: parseRawRecords(rawCsv),
+    step4Rows: parseStep4Rows(step4Csv),
     step3Stats,
     step4Summary,
     boxplotImageUrl,
