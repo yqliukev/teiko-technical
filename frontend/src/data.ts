@@ -1,9 +1,9 @@
-import step2SummaryCsvUrl from '../cell_count_summary.csv?url';
-import rawCellCountCsvUrl from '../cell-count.csv?url';
-import step4DataCsvUrl from '../step_4_data.csv?url';
-import statTestResultsUrl from '../stat_test_results.json?url';
-import step4SummaryUrl from '../step_4_summary.json?url';
-import boxplotImageUrl from '../treatment_response_boxplot.png?url';
+import step2SummaryCsvUrl from '../../cell_count_summary.csv?url';
+import rawCellCountCsvUrl from '../../cell-count.csv?url';
+import step4DataCsvUrl from '../../step_4_data.csv?url';
+import statTestResultsUrl from '../../stat_test_results.json?url';
+import step4SummaryUrl from '../../step_4_summary.json?url';
+import boxplotImageUrl from '../../treatment_response_boxplot.png?url';
 
 export const CELL_TYPES = ['b_cell', 'cd8_t_cell', 'cd4_t_cell', 'nk_cell', 'monocyte'] as const;
 
